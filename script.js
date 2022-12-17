@@ -74,3 +74,28 @@ function displayMovements(movements) {
 }
 
 displayMovements(account1.movements);
+
+function displayTotalBalance(movements) {
+  const totalBal = movements.reduce((accu, curr) => accu + curr, movements[0]);
+  labelBalance.innerHTML = totalBal;
+}
+displayTotalBalance(account1.movements);
+
+function displayBalanceSummary(movements) {
+  const deposited = movements
+    .filter((mov) => mov > 0)
+    .reduce((accu, curr) => accu + curr, 0);
+  labelSumIn.innerHTML = deposited;
+  const witdhrawal = Math.abs(
+    movements.filter((mov) => mov < 0).reduce((accu, curr) => accu + curr)
+  );
+  labelSumOut.innerHTML = witdhrawal;
+
+  let interest = movements
+    .map((mov) => (mov * 1.2) / 100)
+    .filter((f) => f > 0)
+    .reduce((accu, curr) => accu + curr, 0);
+  interest = Math.trunc(interest);
+  labelSumInterest.innerHTML = interest;
+}
+displayBalanceSummary(account1.movements);
