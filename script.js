@@ -57,11 +57,12 @@ const inputLoanAmount = document.querySelector(".form__input--loan-amount");
 const inputCloseUsername = document.querySelector(".form__input--user");
 const inputClosePin = document.querySelector(".form__input--pin");
 
-function displayMovements(movements) {
+function displayMovements(acc, sort = false) {
   containerMovements.innerHTML = "";
-  const type = movements > 0 ? "deposit" : "withdrawals";
-
-  movements.forEach((mov, i) => {
+  const newMov = sort
+    ? acc.movements.slice().sort((a, b) => a - b)
+    : acc.movements;
+  newMov.forEach((mov, i) => {
     const type = mov > 0 ? "deposit" : "withdrawal";
     const html = `<div class="movements__row">
     <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
@@ -73,29 +74,122 @@ function displayMovements(movements) {
   });
 }
 
-displayMovements(account1.movements);
-
-function displayTotalBalance(movements) {
-  const totalBal = movements.reduce((accu, curr) => accu + curr, movements[0]);
-  labelBalance.innerHTML = totalBal;
+function displayTotalBalance(acc) {
+  const totalBal = acc.movements.reduce((accu, curr) => accu + curr, 0);
+  acc.balance = totalBal;
+  labelBalance.innerHTML = acc.balance;
 }
-displayTotalBalance(account1.movements);
 
-function displayBalanceSummary(movements) {
-  const deposited = movements
+function displayBalanceSummary(acc) {
+  const deposited = acc.movements
     .filter((mov) => mov > 0)
     .reduce((accu, curr) => accu + curr, 0);
   labelSumIn.innerHTML = deposited;
   const witdhrawal = Math.abs(
-    movements.filter((mov) => mov < 0).reduce((accu, curr) => accu + curr)
+    acc.movements
+      .filter((mov) => mov < 0)
+      .reduce((accu, curr) => accu + curr, 0)
   );
   labelSumOut.innerHTML = witdhrawal;
 
-  let interest = movements
+  let interest = acc.movements
     .map((mov) => (mov * 1.2) / 100)
     .filter((f) => f > 0)
     .reduce((accu, curr) => accu + curr, 0);
   interest = Math.trunc(interest);
   labelSumInterest.innerHTML = interest;
 }
-displayBalanceSummary(account1.movements);
+function updateUi(acc) {
+  displayMovements(acc);
+  displayBalanceSummary(acc);
+  displayTotalBalance(acc);
+}
+function createUsername(accounts) {
+  accounts.forEach((acc) => {
+    acc.username = acc.owner
+      .toLowerCase()
+      .split(" ")
+      .map((item) => item[0])
+      .join("");
+  });
+}
+createUsername(accounts);
+
+let sorted = false;
+btnSort.addEventListener("click", function (e) {
+  e.preventDefault();
+  displayMovements(currentAccount, !sorted);
+  console.log("sor", sorted);
+  sorted = !sorted;
+});
+
+let currentAccount;
+
+btnLogin.addEventListener("click", function (e) {
+  e.preventDefault();
+  const inputUserNameValue = inputLoginUsername.value;
+
+  const inputPasswordValue = inputLoginPin.value;
+
+  currentAccount = accounts.find((acc) => acc.username === inputUserNameValue);
+
+  if (currentAccount?.pin === Number(inputPasswordValue)) {
+    const welcom = currentAccount.owner.split(" ")[0];
+    labelWelcome.innerHTML = `Welcome to dashboard ${welcom}`;
+    updateUi(currentAccount);
+    containerApp.style.opacity = 1;
+  } else {
+    console.log("wrond credintials");
+  }
+});
+inputTransferTo;
+inputTransferAmount;
+btnTransfer.addEventListener("click", function (e) {
+  e.preventDefault();
+  const transferAc = inputTransferTo.value;
+  const transferAm = Number(inputTransferAmount.value);
+
+  const transAccount = accounts.find((acc) => acc.username === transferAc);
+  if (
+    transAccount &&
+    transferAm <= currentAccount.balance &&
+    currentAccount.balance >= 0 &&
+    transAccount.username !== currentAccount.username
+  ) {
+    currentAccount.movements.push(transferAm * -1);
+    transAccount.movements.push(transferAm);
+    updateUi(currentAccount);
+  }
+});
+
+btnLoan.addEventListener("click", function (e) {
+  e.preventDefault();
+  const requestLoanValue = Number(inputLoanAmount.value);
+  if (
+    requestLoanValue > 0 &&
+    currentAccount.movements.some((item) => item >= requestLoanValue * 0.1)
+  ) {
+    currentAccount.movements.push(requestLoanValue);
+    updateUi(currentAccount);
+  }
+});
+
+btnClose.addEventListener("click", function (e) {
+  console.log("hello");
+  e.preventDefault();
+  const inputName = inputCloseUsername.value;
+  const inputPin = Number(inputClosePin.value);
+  console.log("uname", inputName);
+  console.log("uname", inputPin);
+  if (
+    inputName === currentAccount.username &&
+    inputPin === currentAccount.pin
+  ) {
+    const closeIndex = accounts.findIndex(
+      (acc) => acc.username === currentAccount.username
+    );
+    accounts.splice(closeIndex, 1);
+    containerApp.style.opacity = 0;
+    labelWelcome.innerHTML = "Login to get started";
+  }
+});
